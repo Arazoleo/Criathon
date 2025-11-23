@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assembly Quest - Simulador de Memória 3D</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0f0f23, #1a1a3f);
+      color: #f8f8f8;
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    
+    #canvas3d {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    
+    .ui-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+    }
+
+    
+    .top-panel {
+      pointer-events: auto;
+      background: rgba(15, 15, 35, 0.95);
+      border-bottom: 2px solid #00d4aa;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 20px rgba(0, 212, 170, 0.2);
+    }
+
+    .top-panel h1 {
+      font-size: 24px;
+      color: #00d4aa;
+      text-shadow: 0 0 10px rgba(0, 212, 170, 0.5);
+    }
+
+    .score-display {
+      display: flex;
+      gap: 30px;
+      align-items: center;
+    }
+
+    .score-item {
+      text-align: center;
+    }
+
+    .score-item .label {
+      font-size: 12px;
+      color: #888;
+      text-transform: uppercase;
+    }
+
+    .score-item .value {
+      font-size: 28px;
+      font-weight: bold;
+      color: #feca57;
+      text-shadow: 0 0 10px rgba(254, 202, 87, 0.5);
+    }
+
+    
+    .left-panel {
+      pointer-events: auto;
+      position: absolute;
+      left: 0;
+      top: 70px;
+      width: 350px;
+      height: calc(100vh - 70px);
+      background: rgba(15, 15, 35, 0.95);
+      border-right: 2px solid #0f3460;
+      overflow-y: auto;
+      padding: 20px;
+      z-index: 20;
+    }
+
+    .left-panel h2 {
+      color: #4ecdc4;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+
+    .memory-hierarchy-3d {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .memory-block {
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+
+    .memory-block:hover {
+      transform: translateX(5px);
+      box-shadow: 0 0 15px rgba(0, 212, 170, 0.3);
+    }
+
+    .memory-block.registers {
+      background: linear-gradient(135deg, #00d4aa, #00a085);
+      color: white;
+    }
+
+    .memory-block.cache {
+      background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+      color: white;
+    }
+
+    .memory-block.ram {
+      background: linear-gradient(135deg, #4ecdc4, #44a08d);
+      color: white;
+    }
+
+    .memory-block.disk {
+      background: linear-gradient(135deg, #feca57, #ff9ff3);
+      color: #2c2c54;
+    }
+
+    .memory-block h3 {
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
+
+    .memory-block .info {
+      font-size: 11px;
+      opacity: 0.9;
+    }
+
+    .code-editor-container {
+      margin-top: 20px;
+    }
+
+    .code-editor-container h2 {
+      color: #4ecdc4;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .code-editor {
+      display: flex;
+      background: #1a1a2e;
+      border: 1px solid #0f3460;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .line-numbers {
+      background: #0f0f23;
+      color: #666;
+      padding: 8px 10px;
+      text-align: right;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      border-right: 1px solid #0f3460;
+      user-select: none;
+      line-height: 1.5;
+      white-space: pre;
+    }
+
+    .code-editor {
+      position: relative;
+    }
+
+    .code-editor textarea {
+      flex: 1;
+      background: #1a1a2e;
+      color: #4ecdc4;
+      border: 2px solid #0f3460;
+      padding: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      resize: none;
+      height: 150px;
+      line-height: 1.5;
+      transition: border-color 0.3s ease;
+    }
+
+    .code-editor textarea:focus {
+      outline: none;
+      border-color: #00d4aa;
+      box-shadow: 0 0 10px rgba(0, 212, 170, 0.3);
+    }
+
+    .code-editor textarea::placeholder {
+      color: #555;
+    }
+
+    
+    .command-highlight {
+      background: rgba(0, 212, 170, 0.2);
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-weight: bold;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .button-group button {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      background: linear-gradient(135deg, #00d4aa, #00a085);
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+
+    .button-group button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 212, 170, 0.3);
+    }
+
+    .button-group button:active {
+      transform: translateY(0);
+    }
+
+    
+    .right-panel {
+      pointer-events: auto;
+      position: absolute;
+      right: 0;
+      top: 70px;
+      width: 350px;
+      height: calc(100vh - 70px);
+      background: rgba(15, 15, 35, 0.95);
+      border-left: 2px solid #0f3460;
+      overflow-y: auto;
+      padding: 20px;
+      z-index: 20;
+    }
+
+    .right-panel h2 {
+      color: #4ecdc4;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+      border: 1px solid #0f3460;
+    }
+
+    .stat-card .label {
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .stat-card .value {
+      font-size: 20px;
+      font-weight: bold;
+      color: #feca57;
+    }
+
+    .log-container {
+      background: #0f0f23;
+      border: 1px solid #0f3460;
+      border-radius: 5px;
+      padding: 10px;
+      height: 200px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+    }
+
+    .log-entry {
+      margin: 3px 0;
+      padding: 3px 5px;
+      border-radius: 3px;
+    }
+
+    .log-entry.info {
+      color: #4ecdc4;
+    }
+
+    .log-entry.success {
+      color: #00d4aa;
+    }
+
+    .log-entry.error {
+      color: #ff6b6b;
+    }
+
+    .log-entry.warning {
+      color: #feca57;
+    }
+
+    
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 100;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      margin: 5% auto;
+      padding: 30px;
+      border: 2px solid #00d4aa;
+      border-radius: 10px;
+      width: 80%;
+      max-width: 600px;
+      box-shadow: 0 0 30px rgba(0, 212, 170, 0.3);
+    }
+
+    .modal-content h2 {
+      color: #00d4aa;
+      margin-bottom: 15px;
+    }
+
+    .modal-content p {
+      color: #f8f8f8;
+      margin-bottom: 10px;
+      line-height: 1.6;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .modal-buttons button {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 5px;
+      background: linear-gradient(135deg, #00d4aa, #00a085);
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+
+    .modal-buttons button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 212, 170, 0.3);
+    }
+
+    .close-btn {
+      color: #00d4aa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: color 0.3s ease;
+    }
+
+    .close-btn:hover {
+      color: #ff6b6b;
+    }
+
+    
+    .instruction-category {
+      margin-bottom: 25px;
+      padding: 15px;
+      background: rgba(30, 30, 50, 0.5);
+      border-radius: 8px;
+      border-left: 4px solid #00d4aa;
+    }
+
+    .instruction-category h3 {
+      color: #00d4aa;
+      margin-bottom: 15px;
+      font-size: 16px;
+      text-transform: uppercase;
+    }
+
+    .instruction-item {
+      background: rgba(20, 20, 40, 0.5);
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      border: 1px solid rgba(0, 212, 170, 0.2);
+    }
+
+    .instruction-item .instruction-name {
+      color: #feca57;
+      font-weight: bold;
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
+
+    .instruction-item .instruction-syntax {
+      color: #4ecdc4;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      margin-bottom: 5px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 5px 8px;
+      border-radius: 3px;
+    }
+
+    .instruction-item .instruction-description {
+      color: #f8f8f8;
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+
+    .instruction-item .instruction-example {
+      color: #888;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      margin-top: 5px;
+      font-style: italic;
+    }
+
+    .instruction-item .instruction-timing {
+      color: #00d4aa;
+      font-size: 11px;
+      margin-top: 5px;
+    }
+
+    
+    .phase-info {
+      margin-bottom: 20px;
+    }
+
+    .phase-info-item {
+      margin-bottom: 15px;
+      padding: 10px;
+      background: rgba(30, 30, 50, 0.5);
+      border-radius: 5px;
+      border-left: 3px solid #00d4aa;
+    }
+
+    .phase-info-item .label {
+      color: #4ecdc4;
+      font-weight: bold;
+      font-size: 12px;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .phase-info-item .value {
+      color: #f8f8f8;
+      font-size: 13px;
+    }
+
+    .phase-info-item code {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      color: #feca57;
+    }
+
+    .phase-hints {
+      margin-top: 15px;
+    }
+
+    .phase-hints h4 {
+      color: #00d4aa;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .phase-hints ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .phase-hints li {
+      color: #f8f8f8;
+      font-size: 12px;
+      padding: 5px 0;
+      padding-left: 20px;
+      position: relative;
+    }
+
+    .phase-hints li:before {
+      content: "→";
+      position: absolute;
+      left: 0;
+      color: #00d4aa;
+    }
+
+    
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0f0f23;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #00d4aa;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #00a085;
+    }
+
+    
+    .tooltip {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.9);
+      color: #00d4aa;
+      padding: 8px 12px;
+      border-radius: 5px;
+      font-size: 12px;
+      pointer-events: none;
+      z-index: 30;
+      border: 1px solid #00d4aa;
+      display: none;
+    }
+
+    .tooltip.show {
+      display: block;
+    }
+
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    @keyframes glow {
+      0%, 100% { box-shadow: 0 0 10px rgba(0, 212, 170, 0.5); }
+      50% { box-shadow: 0 0 20px rgba(0, 212, 170, 0.8); }
+    }
+
+    .active {
+      animation: glow 1s infinite;
+    }
+
+    
+    .back-button {
+      pointer-events: auto;
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 15px;
+      background: linear-gradient(135deg, #00d4aa, #00a085);
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      z-index: 100;
+      font-size: 14px;
+    }
+
+    .back-button:hover {
+      transform: translateX(-50%) translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 212, 170, 0.3);
+      background: linear-gradient(135deg, #00f5cc, #00b89a);
+    }
+
+    
+    .ai-assistant-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00d4aa, #00b894);
+      border: none;
+      color: white;
+      font-size: 28px;
+      cursor: pointer;
+      box-shadow: 0 5px 20px rgba(0, 212, 170, 0.4);
+      z-index: 999;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ai-assistant-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 8px 30px rgba(0, 212, 170, 0.6);
+    }
+
+    
+    @media (max-width: 1200px) {
+      .left-panel, .right-panel {
+        width: 300px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .left-panel, .right-panel {
+        display: none;
+      }
+      
+      .back-button {
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  
+  <canvas id="canvas3d"></canvas>
+
+  
+  <div class="ui-overlay">
+    
+    <div class="top-panel">
+      <h1>Assembly Quest - Simulador 3D</h1>
+      <div class="score-display">
+        <div class="score-item">
+          <div class="label">Fase</div>
+          <div class="value" id="phaseValue">1</div>
+        </div>
+        <div class="score-item">
+          <div class="label">Pontuação</div>
+          <div class="value" id="scoreValue">0</div>
+        </div>
+        <div class="score-item">
+          <div class="label">Ciclos</div>
+          <div class="value" id="cyclesValue">0</div>
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="left-panel">
+      <h2>Hierarquia de Memória</h2>
+      <div class="memory-hierarchy-3d" id="memoryHierarchy"></div>
+
+      <div class="code-editor-container">
+        <h2>Editor de Código</h2>
+        <div class="code-editor">
+          <div class="line-numbers" id="lineNumbers">1</div>
+          <textarea id="program" placeholder="Digite seu código Assembly aqui..."></textarea>
+        </div>
+        <div class="button-group">
+          <button id="assembleBtn">Assemble</button>
+          <button id="resetBtn">Reset</button>
+        </div>
+        <div class="button-group">
+          <button id="nextPhaseBtn" style="display:none;">Próxima Fase</button>
+        </div>
+      </div>
+
+      <div class="help-section-container" style="margin-top: 20px;">
+        <div class="button-group">
+          <button id="instructionsBtn" style="background: linear-gradient(135deg, #4ecdc4, #44a08d);">Guia de Instruções</button>
+          <button id="phaseInfoBtn" style="background: linear-gradient(135deg, #feca57, #ff9ff3);">Sobre a Fase</button>
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="right-panel">
+      <h2>Estatísticas</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="label">Leituras</div>
+          <div class="value" id="readOps">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Escritas</div>
+          <div class="value" id="writeOps">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Cache Hits</div>
+          <div class="value" id="cacheHits">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Tempo (ms)</div>
+          <div class="value" id="totalTime">0</div>
+        </div>
+      </div>
+
+      <h2>Log de Execução</h2>
+      <div class="log-container" id="logContainer"></div>
+    </div>
+    
+    
+    <button class="back-button" onclick="window.location.href='index.html'">Voltar</button>
+    
+    
+    <button id="aiAssistantBtn" class="ai-assistant-btn" title="Assistente de IA" 
+      style="pointer-events: auto; cursor: pointer;"
+      onclick="if(window.aiChatUI) { window.aiChatUI.toggle(); } else { console.log('aiChatUI não está disponível ainda'); }">
+      🤖
+    </button>
+    
+    
+    <div id="aiConfigModal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <span class="close-btn" onclick="closeAIConfig()">&times;</span>
+        <h2>Configurar Assistente de IA</h2>
+        <p style="margin: 15px 0; color: #888;">
+          Para usar o assistente de IA, você precisa de uma API Key do Google Gemini.
+          <br><br>
+          <strong>Como obter:</strong>
+          <ol style="margin-left: 20px; margin-top: 10px;">
+            <li>Acesse <a href="https://makersuite.google.com/app/apikey" target="_blank" style="color: #00d4aa;">Google AI Studio</a></li>
+            <li>Crie uma nova API Key</li>
+            <li>Cole a chave abaixo</li>
+          </ol>
+        </p>
+        <input type="password" id="apiKeyInput" placeholder="Cole sua API Key aqui..." 
+          style="width: 100%; padding: 10px; margin: 15px 0; background: #1a1a2e; border: 1px solid #444; color: #fff; border-radius: 5px;">
+        <div class="modal-buttons">
+          <button onclick="saveAPIKey()">Salvar</button>
+          <button onclick="closeAIConfig()" style="background: #666;">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="tooltip" id="tooltip"></div>
+
+  
+  <div id="successModal" class="modal">
+    <div class="modal-content">
+      <span class="close-btn" id="closeSuccess">&times;</span>
+      <h2>Parabéns!</h2>
+      <p id="successMessage"></p>
+      <div class="modal-buttons">
+        <button id="continueBtn">Continuar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="infoModal" class="modal">
+    <div class="modal-content">
+      <span class="close-btn" id="closeInfo">&times;</span>
+      <h2 id="infoTitle"></h2>
+      <p id="infoContent"></p>
+      <div class="modal-buttons">
+        <button id="closeInfoBtn">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  
+  <div id="instructionsModal" class="modal">
+    <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+      <span class="close-btn" id="closeInstructions">&times;</span>
+      <h2>Guia de Instruções</h2>
+      <div id="instructionsContent"></div>
+    </div>
+  </div>
+
+  
+  <div id="phaseModal" class="modal">
+    <div class="modal-content" style="max-width: 700px;">
+      <span class="close-btn" id="closePhase">&times;</span>
+      <h2 id="phaseModalTitle"></h2>
+      <div id="phaseModalContent"></div>
+      <div class="modal-buttons">
+        <button id="closePhaseBtn">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="js/memory-simulator-data.js"></script>
+  <script src="js/ai-assistant.js"></script>
+  <script src="js/ai-chat-ui.js"></script>
+  <script src="js/memory-simulator.js"></script>
+  <script>
+    
+    let aiAssistant = null;
+    let aiChatUI = null;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      
+      aiAssistant = new AIAssistant();
+      aiAssistant.loadApiKey();
+      aiAssistant.updateContext('memory');
+
+      
+      aiChatUI = new AIChatUI(aiAssistant, 'memory');
+      
+      
+      window.aiAssistant = aiAssistant;
+      window.aiChatUI = aiChatUI;
+
+      
+      setTimeout(() => {
+        const aiBtn = document.getElementById('aiAssistantBtn');
+        if (aiBtn) {
+          console.log('Botão encontrado, anexando listener...');
+          aiBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Botão clicado!', aiAssistant.apiKey);
+            if (!aiAssistant.apiKey) {
+              const modal = document.getElementById('aiConfigModal');
+              if (modal) {
+                modal.style.display = 'block';
+              } else {
+                alert('API Key não configurada. Por favor, configure nas configurações.');
+              }
+            } else {
+              aiChatUI.toggle();
+            }
+          });
+          console.log('Listener anexado com sucesso!');
+        } else {
+          console.error('Botão aiAssistantBtn não encontrado!');
+        }
+      }, 100);
+
+      
+      window.closeAIConfig = function() {
+        document.getElementById('aiConfigModal').style.display = 'none';
+      };
+
+      window.saveAPIKey = function() {
+        const apiKey = document.getElementById('apiKeyInput').value.trim();
+        if (apiKey) {
+          aiAssistant.setApiKey(apiKey);
+          document.getElementById('apiKeyInput').value = '';
+          closeAIConfig();
+          aiChatUI.open();
+        } else {
+          alert('Por favor, insira uma API Key válida.');
+        }
+      };
+
+      
+      const originalNextPhase = window.nextPhase;
+      if (typeof window.nextPhase === 'function') {
+        window.nextPhase = function() {
+          const result = originalNextPhase();
+          if (aiChatUI && typeof memorySimulator !== 'undefined') {
+            const currentPhase = memorySimulator?.currentPhase || null;
+            aiChatUI.updateContext(currentPhase);
+          }
+          return result;
+        };
+      }
+    });
+  </script>
+</body>
+</html>
+

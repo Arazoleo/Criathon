@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagnóstico Three.js - Simulador de Memória</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #000;
+      color: #fff;
+      font-family: 'Courier New', monospace;
+    }
+    
+    .diagnostic-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .test-section {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #333;
+      border-radius: 5px;
+      background: #111;
+    }
+    
+    .test-section h3 {
+      color: #00ff41;
+      margin-top: 0;
+    }
+    
+    .status {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+    
+    .status.success {
+      background: rgba(0, 255, 65, 0.2);
+      border: 1px solid #00ff41;
+      color: #00ff41;
+    }
+    
+    .status.error {
+      background: rgba(255, 0, 0, 0.2);
+      border: 1px solid #ff0000;
+      color: #ff0000;
+    }
+    
+    .status.warning {
+      background: rgba(255, 255, 0, 0.2);
+      border: 1px solid #ffff00;
+      color: #ffff00;
+    }
+    
+    .info {
+      background: rgba(0, 170, 255, 0.1);
+      border: 1px solid #00aaff;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+    
+    #canvas {
+      border: 2px solid #00ff41;
+      margin: 10px 0;
+    }
+    
+    .button-group {
+      margin: 20px 0;
+    }
+    
+    button {
+      background: #00ff41;
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      margin: 5px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+    }
+    
+    button:hover {
+      background: #00cc33;
+    }
+    
+    button:disabled {
+      background: #666;
+      cursor: not-allowed;
+    }
+    
+    .log {
+      background: #000;
+      border: 1px solid #333;
+      padding: 10px;
+      height: 200px;
+      overflow-y: auto;
+      font-size: 12px;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="diagnostic-container">
+    <h1>🔧 Diagnóstico Three.js - Simulador de Memória</h1>
+    
+    <div class="test-section">
+      <h3>1. Verificação de Dependências</h3>
+      <div id="dependencies-status" class="status">Verificando...</div>
+      <div id="dependencies-info" class="info"></div>
+    </div>
+    
+    <div class="test-section">
+      <h3>2. Teste de Canvas</h3>
+      <canvas id="canvas" width="400" height="300"></canvas>
+      <div id="canvas-status" class="status">Testando canvas...</div>
+      <div id="canvas-info" class="info"></div>
+    </div>
+    
+    <div class="test-section">
+      <h3>3. Teste Three.js</h3>
+      <div id="threejs-status" class="status">Inicializando Three.js...</div>
+      <div id="threejs-info" class="info"></div>
+      <div class="button-group">
+        <button id="test-threejs">Testar Three.js</button>
+        <button id="test-particles">Testar Partículas</button>
+        <button id="test-animation">Testar Animação</button>
+      </div>
+    </div>
+    
+    <div class="test-section">
+      <h3>4. Log de Execução</h3>
+      <div id="log" class="log"></div>
+      <button id="clear-log">Limpar Log</button>
+    </div>
+    
+    <div class="test-section">
+      <h3>5. Informações do Sistema</h3>
+      <div id="system-info" class="info"></div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    let scene, camera, renderer, particles;
+    let animationId;
+    let logElement;
+    
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const logEntry = document.createElement('div');
+      logEntry.innerHTML = `[${timestamp}] ${message}`;
+      logEntry.style.color = type === 'error' ? '#ff0000' : type === 'success' ? '#00ff41' : '#00aaff';
+      logElement.appendChild(logEntry);
+      logElement.scrollTop = logElement.scrollHeight;
+    }
+    
+    function checkDependencies() {
+      const status = document.getElementById('dependencies-status');
+      const info = document.getElementById('dependencies-info');
+      
+      let allGood = true;
+      let infoText = '';
+      
+      
+      if (typeof THREE !== 'undefined') {
+        infoText += `✅ Three.js carregado (versão ${THREE.REVISION})<br>`;
+      } else {
+        infoText += `❌ Three.js não carregado<br>`;
+        allGood = false;
+      }
+      
+      
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      if (gl) {
+        infoText += `✅ WebGL suportado<br>`;
+      } else {
+        infoText += `❌ WebGL não suportado<br>`;
+        allGood = false;
+      }
+      
+      
+      if (canvas.getContext) {
+        infoText += `✅ Canvas suportado<br>`;
+      } else {
+        infoText += `❌ Canvas não suportado<br>`;
+        allGood = false;
+      }
+      
+      status.textContent = allGood ? 'Todas as dependências OK' : 'Problemas encontrados';
+      status.className = `status ${allGood ? 'success' : 'error'}`;
+      info.innerHTML = infoText;
+      
+      log(`Dependências verificadas: ${allGood ? 'OK' : 'ERRO'}`, allGood ? 'success' : 'error');
+    }
+    
+    function testCanvas() {
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+      const status = document.getElementById('canvas-status');
+      const info = document.getElementById('canvas-info');
+      
+      try {
+        
+        ctx.fillStyle = '#00ff41';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = '#000';
+        ctx.font = '20px Arial';
+        ctx.fillText('Canvas OK!', 150, 150);
+        
+        status.textContent = 'Canvas funcionando';
+        status.className = 'status success';
+        info.innerHTML = `Canvas: ${canvas.width}x${canvas.height}<br>Contexto: ${ctx.constructor.name}`;
+        
+        log('Canvas testado com sucesso', 'success');
+      } catch (error) {
+        status.textContent = `Erro no canvas: ${error.message}`;
+        status.className = 'status error';
+        info.innerHTML = `Erro: ${error.message}`;
+        
+        log(`Erro no canvas: ${error.message}`, 'error');
+      }
+    }
+    
+    function testThreeJS() {
+      const status = document.getElementById('threejs-status');
+      const info = document.getElementById('threejs-info');
+      
+      try {
+        if (typeof THREE === 'undefined') {
+          throw new Error('Three.js não carregado');
+        }
+        
+        const canvas = document.getElementById('canvas');
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, canvas.width / canvas.height, 0.1, 1000);
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+        
+        renderer.setSize(canvas.width, canvas.height);
+        renderer.setClearColor(0x000000, 0);
+        
+        camera.position.z = 5;
+        
+        status.textContent = 'Three.js inicializado';
+        status.className = 'status success';
+        info.innerHTML = `
+          Scene: ${scene.constructor.name}<br>
+          Camera: ${camera.constructor.name}<br>
+          Renderer: ${renderer.constructor.name}<br>
+          WebGL Version: ${renderer.capabilities.getMaxAnisotropy()}
+        `;
+        
+        log('Three.js inicializado com sucesso', 'success');
+      } catch (error) {
+        status.textContent = `Erro Three.js: ${error.message}`;
+        status.className = 'status error';
+        info.innerHTML = `Erro: ${error.message}`;
+        
+        log(`Erro Three.js: ${error.message}`, 'error');
+      }
+    }
+    
+    function testParticles() {
+      const status = document.getElementById('threejs-status');
+      const info = document.getElementById('threejs-info');
+      
+      try {
+        if (!scene || !renderer) {
+          throw new Error('Three.js não inicializado');
+        }
+        
+        const particleCount = 50;
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        const colors = new Float32Array(particleCount * 3);
+        
+        for (let i = 0; i < particleCount * 3; i += 3) {
+          positions[i] = (Math.random() - 0.5) * 10;
+          positions[i + 1] = (Math.random() - 0.5) * 10;
+          positions[i + 2] = (Math.random() - 0.5) * 10;
+          
+          colors[i] = Math.random();
+          colors[i + 1] = Math.random();
+          colors[i + 2] = Math.random();
+        }
+        
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        
+        const material = new THREE.PointsMaterial({
+          size: 0.1,
+          vertexColors: true,
+          transparent: true,
+          opacity: 0.8
+        });
+        
+        particles = new THREE.Points(geometry, material);
+        scene.add(particles);
+        
+        renderer.render(scene, camera);
+        
+        status.textContent = 'Partículas criadas';
+        status.className = 'status success';
+        info.innerHTML += `<br>Partículas: ${particleCount}`;
+        
+        log(`Partículas criadas: ${particleCount}`, 'success');
+      } catch (error) {
+        status.textContent = `Erro partículas: ${error.message}`;
+        status.className = 'status error';
+        info.innerHTML += `<br>Erro: ${error.message}`;
+        
+        log(`Erro partículas: ${error.message}`, 'error');
+      }
+    }
+    
+    function testAnimation() {
+      const status = document.getElementById('threejs-status');
+      
+      try {
+        if (!particles || !renderer || !scene || !camera) {
+          throw new Error('Elementos Three.js não inicializados');
+        }
+        
+        function animate() {
+          animationId = requestAnimationFrame(animate);
+          
+          particles.rotation.x += 0.01;
+          particles.rotation.y += 0.01;
+          
+          renderer.render(scene, camera);
+        }
+        
+        animate();
+        
+        status.textContent = 'Animação iniciada';
+        status.className = 'status success';
+        
+        log('Animação iniciada', 'success');
+        
+        
+        setTimeout(() => {
+          if (animationId) {
+            cancelAnimationFrame(animationId);
+            status.textContent = 'Animação parada';
+            log('Animação parada', 'info');
+          }
+        }, 5000);
+        
+      } catch (error) {
+        status.textContent = `Erro animação: ${error.message}`;
+        status.className = 'status error';
+        
+        log(`Erro animação: ${error.message}`, 'error');
+      }
+    }
+    
+    function showSystemInfo() {
+      const info = document.getElementById('system-info');
+      
+      const userAgent = navigator.userAgent;
+      const webglInfo = getWebGLInfo();
+      
+      info.innerHTML = `
+        <strong>Navegador:</strong> ${userAgent}<br>
+        <strong>WebGL:</strong> ${webglInfo}<br>
+        <strong>Resolução:</strong> ${window.innerWidth}x${window.innerHeight}<br>
+        <strong>Pixel Ratio:</strong> ${window.devicePixelRatio}<br>
+        <strong>Timestamp:</strong> ${new Date().toISOString()}
+      `;
+    }
+    
+    function getWebGLInfo() {
+      try {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        
+        if (!gl) return 'Não suportado';
+        
+        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+        if (debugInfo) {
+          return `${gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)}`;
+        }
+        
+        return 'Suportado';
+      } catch (error) {
+        return `Erro: ${error.message}`;
+      }
+    }
+    
+    
+    document.getElementById('test-threejs').addEventListener('click', testThreeJS);
+    document.getElementById('test-particles').addEventListener('click', testParticles);
+    document.getElementById('test-animation').addEventListener('click', testAnimation);
+    document.getElementById('clear-log').addEventListener('click', () => {
+      logElement.innerHTML = '';
+    });
+    
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      logElement = document.getElementById('log');
+      
+      log('Diagnóstico iniciado', 'info');
+      checkDependencies();
+      testCanvas();
+      showSystemInfo();
+      
+      log('Diagnóstico completo', 'success');
+    });
+  </script>
+</body>
+</html>

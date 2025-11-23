@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assembly Quest 3D - Simulador de CPU Avançado</title>
+  <link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+
+  <button class="back-btn" id="backBtn">Voltar ao Menu</button>
+
+  <div class="ui-container">
+    <h1>Assembly Quest 3D</h1>
+    
+    <div class="score-display">
+      <div style="font-size: 12px; margin-bottom: 5px;">Pontuação Total</div>
+      <div class="score-value" id="scoreValue">0</div>
+    </div>
+
+    <div class="phase-info" id="phaseInfo">
+      <div class="phase-title">Fase 1: Primeiros Passos</div>
+      <div class="phase-objective">Objetivo: Faça R1 = 8</div>
+    </div>
+
+    <div class="status">
+      <div class="status-row">
+        <span>PC:</span>
+        <span class="status-value" id="pcValue">0</span>
+      </div>
+      <div class="status-row">
+        <span>Ciclos:</span>
+        <span class="status-value" id="cyclesValue">0</span>
+      </div>
+      <div class="status-row">
+        <span>Status:</span>
+        <span class="status-value" id="statusValue">Pronto</span>
+      </div>
+    </div>
+
+    <div class="code-editor">
+      <div class="line-numbers" id="lineNumbers">1</div>
+      <textarea id="program" placeholder="Digite seu código Assembly aqui..."></textarea>
+    </div>
+
+    <div class="button-group">
+      <button id="assembleBtn">Assemble</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+    
+    <div class="button-group">
+      <button id="nextPhaseBtn" style="display:none;">Próxima Fase</button>
+    </div>
+  </div>
+
+  <div class="log-container">
+    <div class="log-title">Log de Execução</div>
+    <div id="logContent"></div>
+  </div>
+
+  
+  <button id="aiAssistantBtn" class="ai-assistant-btn" title="Assistente de IA" 
+    style="pointer-events: auto; cursor: pointer;"
+    onclick="if(window.aiChatUI) { window.aiChatUI.toggle(); } else { console.log('aiChatUI não está disponível ainda'); }">
+    🤖
+  </button>
+  
+  
+  <div id="aiConfigModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <span class="close-btn" onclick="closeAIConfig()">&times;</span>
+      <h2>Configurar Assistente de IA</h2>
+      <p style="margin: 15px 0; color: #888;">
+        Para usar o assistente de IA, você precisa de uma API Key do Google Gemini.
+        <br><br>
+        <strong>Como obter:</strong>
+        <ol style="margin-left: 20px; margin-top: 10px;">
+          <li>Acesse <a href="https://makersuite.google.com/app/apikey" target="_blank" style="color: #00ff41;">Google AI Studio</a></li>
+          <li>Crie uma nova API Key</li>
+          <li>Cole a chave abaixo</li>
+        </ol>
+      </p>
+      <input type="password" id="apiKeyInput" placeholder="Cole sua API Key aqui..." 
+        style="width: 100%; padding: 10px; margin: 15px 0; background: #1a1a2e; border: 1px solid #444; color: #fff; border-radius: 5px;">
+      <div class="modal-buttons">
+        <button onclick="saveAPIKey()">Salvar</button>
+        <button onclick="closeAIConfig()" style="background: #666;">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="help-btn" id="helpBtn">Ajuda</button>
+  <button class="theory-btn" id="theoryBtn">Teoria</button>
+
+  <div class="theory-question-modal" id="theoryQuestionModal">
+    <h2>Desafio Teórico</h2>
+    <p id="theoryQuestionText"></p>
+    <div class="options-container" id="theoryOptionsContainer"></div>
+    <div class="explanation" id="theoryExplanation"></div>
+    <button class="theory-next-btn" id="theoryNextBtn">Continuar</button>
+  </div>
+
+  <div class="help-panel" id="helpPanel">
+    <button class="help-close" id="helpClose">×</button>
+    <div class="help-title">Guia de Instruções</div>
+    
+    <div class="help-section">
+      <h3>MOV Rx, valor</h3>
+      <p>Move um valor para o registrador. Ex: MOV R1, 5</p>
+    </div>
+
+    <div class="help-section">
+      <h3>ADD Rx, Ry, Rz</h3>
+      <p>Soma Ry e Rz, armazena em Rx. Ex: ADD R1, R2, R3</p>
+    </div>
+
+    <div class="help-section">
+      <h3>SUB Rx, Ry, Rz</h3>
+      <p>Subtrai Rz de Ry, armazena em Rx. Ex: SUB R1, R2, R3</p>
+    </div>
+
+    <div class="help-section">
+      <h3>MUL Rx, Ry, Rz</h3>
+      <p>Multiplica Ry por Rz, armazena em Rx. Ex: MUL R1, R2, R3</p>
+    </div>
+
+    <div class="help-section">
+      <h3>DIV Rx, Ry, Rz</h3>
+      <p>Divide Ry por Rz, armazena em Rx. Ex: DIV R1, R2, R3</p>
+    </div>
+
+    <div class="help-section">
+      <h3>MOD Rx, Ry, Rz</h3>
+      <p>Calcula o resto de Ry dividido por Rz, armazena em Rx. Ex: MOD R1, R2, R3</p>
+    </div>
+
+    <div class="help-section">
+      <h3>CMP Rx, Ry</h3>
+      <p>Compara Rx com Ry e define flags. Ex: CMP R1, R2</p>
+    </div>
+
+    <div class="help-section">
+      <h3>JMP linha</h3>
+      <p>Pula para a linha especificada. Ex: JMP 5</p>
+    </div>
+
+    <div class="help-section">
+      <h3>JE linha</h3>
+      <p>Pula se a última comparação foi igual. Ex: JE 5</p>
+    </div>
+
+    <div class="help-section">
+      <h3>JNE linha</h3>
+      <p>Pula se a última comparação foi diferente. Ex: JNE 5</p>
+    </div>
+
+    <div class="help-section">
+      <h3>STORE Rx, endereço</h3>
+      <p>Armazena o valor de Rx na memória. Ex: STORE R1, 0</p>
+    </div>
+
+    <div class="help-section">
+      <h3>LOAD Rx, endereço</h3>
+      <p>Carrega um valor da memória para Rx. Ex: LOAD R1, 0</p>
+    </div>
+
+    <div class="help-section">
+      <h3>IN Rx, dispositivo</h3>
+      <p>Lê dados de um dispositivo de entrada. Ex: IN R1, 0</p>
+    </div>
+
+    <div class="help-section">
+      <h3>OUT Rx, dispositivo</h3>
+      <p>Envia dados para um dispositivo de saída. Ex: OUT R1, 1</p>
+    </div>
+  </div>
+
+  <div class="theory-panel" id="theoryPanel">
+    <button class="help-close" id="theoryClose">×</button>
+    <div class="theory-title">Conceitos Teóricos</div>
+    
+    <div class="theory-section">
+      <h3>Hierarquia de Memória</h3>
+      <p>Os computadores usam uma hierarquia de memória: registradores → cache → RAM → armazenamento. Cada nível é mais lento, mas tem maior capacidade.</p>
+    </div>
+
+    <div class="theory-section">
+      <h3>Registradores</h3>
+      <p>São as unidades de memória mais rápidas, localizadas dentro da CPU. Usados para armazenar dados temporariamente durante operações.</p>
+    </div>
+
+    <div class="theory-section">
+      <h3>Memória Principal (RAM)</h3>
+      <p>Armazena dados e programas em execução. Mais lenta que os registradores, mas com muito mais capacidade. Acesso via endereços.</p>
+    </div>
+
+    <div class="theory-section">
+      <h3>Dispositivos de E/S</h3>
+      <p>Permitem a comunicação entre CPU e dispositivos externos. Usam portas de E/S mapeadas ou acesso direto à memória (DMA).</p>
+    </div>
+
+    <div class="theory-section">
+      <h3>Barramento do Sistema</h3>
+      <p>Conjunto de linhas de comunicação que conectam CPU, memória e dispositivos de E/S. Inclui barramento de dados, endereços e controle.</p>
+    </div>
+
+    <div class="theory-section">
+      <h3>Ciclo de Instrução</h3>
+      <p>1. Busca: Obtém instrução da memória<br>2. Decodificação: Interpreta a instrução<br>3. Execução: Realiza a operação<br>4. Armazenamento: Salva o resultado</p>
+    </div>
+  </div>
+
+  <div class="modal" id="successModal">
+    <h2>Fase Completa!</h2>
+    <p id="successMessage"></p>
+    <button id="continueBtn">Continuar</button>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="js/gameData.js"></script>
+  <script src="js/animations.js"></script>
+  <script src="js/scene3d.js"></script>
+  <script src="js/ai-assistant.js"></script>
+  <script src="js/ai-chat-ui.js"></script>
+  <script src="js/game.js"></script>
+  <script>
+    
+    let aiAssistant = null;
+    let aiChatUI = null;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      
+      aiAssistant = new AIAssistant();
+      aiAssistant.loadApiKey();
+      aiAssistant.updateContext('assembly');
+
+      
+      aiChatUI = new AIChatUI(aiAssistant, 'assembly');
+      
+      
+      window.aiAssistant = aiAssistant;
+      window.aiChatUI = aiChatUI;
+
+      
+      setTimeout(() => {
+        const aiBtn = document.getElementById('aiAssistantBtn');
+        if (aiBtn) {
+          console.log('Botão encontrado, anexando listener...');
+          aiBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Botão clicado!', aiAssistant.apiKey);
+            if (!aiAssistant.apiKey) {
+              const modal = document.getElementById('aiConfigModal');
+              if (modal) {
+                modal.style.display = 'block';
+              } else {
+                alert('API Key não configurada. Por favor, configure nas configurações.');
+              }
+            } else {
+              aiChatUI.toggle();
+            }
+          });
+          console.log('Listener anexado com sucesso!');
+        } else {
+          console.error('Botão aiAssistantBtn não encontrado!');
+        }
+      }, 100);
+
+      
+      window.closeAIConfig = function() {
+        document.getElementById('aiConfigModal').style.display = 'none';
+      };
+
+      window.saveAPIKey = function() {
+        const apiKey = document.getElementById('apiKeyInput').value.trim();
+        if (apiKey) {
+          aiAssistant.setApiKey(apiKey);
+          document.getElementById('apiKeyInput').value = '';
+          closeAIConfig();
+          aiChatUI.open();
+        } else {
+          alert('Por favor, insira uma API Key válida.');
+        }
+      };
+
+      
+      setTimeout(() => {
+        if (typeof window.game !== 'undefined' && window.game) {
+          const originalNextPhase = window.game.nextPhase.bind(window.game);
+          window.game.nextPhase = function() {
+            const result = originalNextPhase();
+            if (aiChatUI && window.game.currentPhase !== undefined) {
+              const currentPhase = window.game.currentPhase + 1; 
+              aiChatUI.updateContext(currentPhase);
+              aiAssistant.addUserAction(`Avançou para fase ${currentPhase}`);
+            }
+            return result;
+          };
+          
+          
+          if (window.game.currentPhase !== undefined) {
+            const currentPhase = window.game.currentPhase + 1;
+            aiChatUI.updateContext(currentPhase);
+          }
+        }
+      }, 500);
+    });
+  </script>
+</body>
+</html>

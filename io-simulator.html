@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assembly Quest - Simulador de Entrada e Saída 3D</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0f0f23, #1a1a3f);
+      color: #f8f8f8;
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    
+    #canvas3d {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    
+    .ui-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+    }
+
+    
+    .top-panel {
+      pointer-events: auto;
+      background: rgba(15, 15, 35, 0.95);
+      border-bottom: 2px solid #ff6b9d;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 20px rgba(255, 107, 157, 0.2);
+    }
+
+    .top-panel h1 {
+      font-size: 24px;
+      color: #ff6b9d;
+      text-shadow: 0 0 10px rgba(255, 107, 157, 0.5);
+    }
+
+    .score-display {
+      display: flex;
+      gap: 30px;
+      align-items: center;
+    }
+
+    .score-item {
+      text-align: center;
+    }
+
+    .score-item .label {
+      font-size: 12px;
+      color: #888;
+      text-transform: uppercase;
+    }
+
+    .score-item .value {
+      font-size: 28px;
+      font-weight: bold;
+      color: #feca57;
+      text-shadow: 0 0 10px rgba(254, 202, 87, 0.5);
+    }
+
+    
+    .left-panel {
+      pointer-events: auto;
+      position: absolute;
+      left: 0;
+      top: 70px;
+      width: 350px;
+      height: calc(100vh - 70px);
+      background: rgba(15, 15, 35, 0.95);
+      border-right: 2px solid #0f3460;
+      overflow-y: auto;
+      padding: 20px;
+      z-index: 20;
+    }
+
+    .left-panel h2 {
+      color: #ff6b9d;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+
+    .device-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .device-item {
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+
+    .device-item:hover {
+      transform: translateX(5px);
+      box-shadow: 0 0 15px rgba(255, 107, 157, 0.3);
+    }
+
+    .device-item.keyboard {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+    }
+
+    .device-item.monitor {
+      background: linear-gradient(135deg, #f093fb, #f5576c);
+      color: white;
+    }
+
+    .device-item.printer {
+      background: linear-gradient(135deg, #4facfe, #00f2fe);
+      color: white;
+    }
+
+    .device-item.disk {
+      background: linear-gradient(135deg, #43e97b, #38f9d7);
+      color: white;
+    }
+
+    .device-item.mouse {
+      background: linear-gradient(135deg, #2c3e50, #34495e);
+      color: white;
+    }
+
+    .device-item.scanner {
+      background: linear-gradient(135deg, #3498db, #2980b9);
+      color: white;
+    }
+
+    .device-item.webcam {
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      color: white;
+    }
+
+    .device-item.speaker {
+      background: linear-gradient(135deg, #9b59b6, #8e44ad);
+      color: white;
+    }
+
+    .device-item h3 {
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
+
+    .device-item .info {
+      font-size: 11px;
+      opacity: 0.9;
+    }
+
+    .device-item .status {
+      font-size: 10px;
+      margin-top: 5px;
+      padding: 3px 6px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 3px;
+    }
+
+    .control-panel {
+      margin-top: 20px;
+    }
+
+    .control-panel h2 {
+      color: #ff6b9d;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+
+    .button-group button {
+      flex: 1;
+      min-width: 80px;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      background: linear-gradient(135deg, #ff6b9d, #ff8fab);
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      font-size: 12px;
+    }
+
+    .button-group button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(255, 107, 157, 0.3);
+    }
+
+    .button-group button:active {
+      transform: translateY(0);
+    }
+
+    .button-group button.secondary {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+    }
+
+    
+    .right-panel {
+      pointer-events: auto;
+      position: absolute;
+      right: 0;
+      top: 70px;
+      width: 350px;
+      height: calc(100vh - 70px);
+      background: rgba(15, 15, 35, 0.95);
+      border-left: 2px solid #0f3460;
+      overflow-y: auto;
+      padding: 20px;
+      z-index: 20;
+    }
+
+    .right-panel h2 {
+      color: #ff6b9d;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+      border: 1px solid #0f3460;
+    }
+
+    .stat-card .label {
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .stat-card .value {
+      font-size: 20px;
+      font-weight: bold;
+      color: #feca57;
+    }
+
+    .log-container {
+      background: #0f0f23;
+      border: 1px solid #0f3460;
+      border-radius: 5px;
+      padding: 10px;
+      height: 200px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+    }
+
+    .log-entry {
+      margin: 3px 0;
+      padding: 3px 5px;
+      border-radius: 3px;
+    }
+
+    .log-entry.info {
+      color: #ff6b9d;
+    }
+
+    .log-entry.success {
+      color: #43e97b;
+    }
+
+    .log-entry.error {
+      color: #ff6b6b;
+    }
+
+    .log-entry.warning {
+      color: #feca57;
+    }
+
+    .device-details {
+      background: #1a1a2e;
+      border: 1px solid #0f3460;
+      border-radius: 5px;
+      padding: 12px;
+      margin-top: 15px;
+    }
+
+    .device-details h3 {
+      color: #ff6b9d;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .detail-item {
+      display: flex;
+      justify-content: space-between;
+      margin: 8px 0;
+      font-size: 12px;
+    }
+
+    .detail-item .label {
+      color: #888;
+    }
+
+    .detail-item .value {
+      color: #feca57;
+      font-weight: bold;
+    }
+
+    
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 100;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      margin: 5% auto;
+      padding: 30px;
+      border: 2px solid #ff6b9d;
+      border-radius: 10px;
+      width: 80%;
+      max-width: 600px;
+      box-shadow: 0 0 30px rgba(255, 107, 157, 0.3);
+    }
+
+    .modal-content h2 {
+      color: #ff6b9d;
+      margin-bottom: 15px;
+    }
+
+    .modal-content p {
+      color: #f8f8f8;
+      margin-bottom: 10px;
+      line-height: 1.6;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .modal-buttons button {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 5px;
+      background: linear-gradient(135deg, #ff6b9d, #ff8fab);
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+
+    .modal-buttons button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(255, 107, 157, 0.3);
+    }
+
+    .close-btn {
+      color: #ff6b9d;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: color 0.3s ease;
+    }
+
+    .close-btn:hover {
+      color: #ff8fab;
+    }
+
+    
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0f0f23;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #ff6b9d;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #ff8fab;
+    }
+
+    
+    .tooltip {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.9);
+      color: #ff6b9d;
+      padding: 8px 12px;
+      border-radius: 5px;
+      font-size: 12px;
+      pointer-events: none;
+      z-index: 30;
+      border: 1px solid #ff6b9d;
+      display: none;
+    }
+
+    .tooltip.show {
+      display: block;
+    }
+
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    @keyframes glow {
+      0%, 100% { box-shadow: 0 0 10px rgba(255, 107, 157, 0.5); }
+      50% { box-shadow: 0 0 20px rgba(255, 107, 157, 0.8); }
+    }
+
+    .pulse {
+      animation: pulse 1.5s infinite;
+    }
+
+    .glow {
+      animation: glow 1.5s infinite;
+    }
+
+    
+    .back-button {
+      pointer-events: auto;
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 15px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      z-index: 100;
+      font-size: 14px;
+    }
+
+    .back-button:hover {
+      transform: translateX(-50%) translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+      background: linear-gradient(135deg, #7c8ff0, #8a5fb8);
+    }
+
+    
+    .ai-assistant-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ff6b9d, #ff8fab);
+      border: none;
+      color: white;
+      font-size: 28px;
+      cursor: pointer;
+      box-shadow: 0 5px 20px rgba(255, 107, 157, 0.4);
+      z-index: 999;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ai-assistant-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 8px 30px rgba(255, 107, 157, 0.6);
+    }
+  </style>
+</head>
+<body>
+  
+  <canvas id="canvas3d"></canvas>
+
+  
+  <div class="ui-overlay">
+    
+    <div class="top-panel">
+      <h1>Simulador de Entrada e Saída (I/O) 3D</h1>
+      <div class="score-display">
+        <div class="score-item">
+          <div class="label">Dispositivos Ativos</div>
+          <div class="value" id="activeDevices">0</div>
+        </div>
+        <div class="score-item">
+          <div class="label">Operações</div>
+          <div class="value" id="operationCount">0</div>
+        </div>
+        <div class="score-item">
+          <div class="label">Taxa de Transferência</div>
+          <div class="value" id="transferRate">0 KB/s</div>
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="left-panel">
+      <h2>Dispositivos</h2>
+      <div class="device-list" id="deviceList">
+        
+      </div>
+
+      <div class="control-panel">
+        <h2>Controles</h2>
+        <div class="button-group">
+          <button id="btnSendData">Enviar Dados</button>
+          <button id="btnReceiveData">Receber Dados</button>
+          <button id="btnClearBuffer" class="secondary">Limpar Buffer</button>
+          <button id="btnReset" class="secondary">Resetar</button>
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="right-panel">
+      <h2>Estatísticas</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="label">Latência Média</div>
+          <div class="value" id="avgLatency">0 ms</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Taxa de Erro</div>
+          <div class="value" id="errorRate">0%</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Bytes Transferidos</div>
+          <div class="value" id="bytesTransferred">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Interrupções</div>
+          <div class="value" id="interruptCount">0</div>
+        </div>
+      </div>
+
+      <div class="device-details" id="deviceDetails">
+        <h3>Detalhes do Dispositivo</h3>
+        <p style="color: #888; font-size: 12px;">Selecione um dispositivo para ver detalhes</p>
+      </div>
+
+      <h2 style="margin-top: 20px;">Log de Eventos</h2>
+      <div class="log-container" id="logContainer">
+        <div class="log-entry info">Sistema inicializado</div>
+      </div>
+    </div>
+
+    
+    <button class="back-button" onclick="window.location.href='index.html'">Voltar</button>
+    
+    
+    <button id="aiAssistantBtn" class="ai-assistant-btn" title="Assistente de IA" 
+      style="pointer-events: auto; cursor: pointer;"
+      onclick="if(window.aiChatUI) { window.aiChatUI.toggle(); } else { console.log('aiChatUI não está disponível ainda'); }">
+      🤖
+    </button>
+    
+    
+    <div id="aiConfigModal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <span class="close-btn" onclick="closeAIConfig()">&times;</span>
+        <h2>Configurar Assistente de IA</h2>
+        <p style="margin: 15px 0; color: #888;">
+          Para usar o assistente de IA, você precisa de uma API Key do Google Gemini.
+          <br><br>
+          <strong>Como obter:</strong>
+          <ol style="margin-left: 20px; margin-top: 10px;">
+            <li>Acesse <a href="https://makersuite.google.com/app/apikey" target="_blank" style="color: #ff6b9d;">Google AI Studio</a></li>
+            <li>Crie uma nova API Key</li>
+            <li>Cole a chave abaixo</li>
+          </ol>
+        </p>
+        <input type="password" id="apiKeyInput" placeholder="Cole sua API Key aqui..." 
+          style="width: 100%; padding: 10px; margin: 15px 0; background: #1a1a2e; border: 1px solid #444; color: #fff; border-radius: 5px;">
+        <div class="modal-buttons">
+          <button onclick="saveAPIKey()">Salvar</button>
+          <button onclick="closeAIConfig()" style="background: #666;">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+  <div id="helpModal" class="modal">
+    <div class="modal-content">
+      <span class="close-btn" onclick="closeModal()">&times;</span>
+      <h2>Ajuda - Simulador de I/O</h2>
+      <p><strong>Objetivo:</strong> Entender como os dispositivos de Entrada e Saída funcionam em um sistema de computação.</p>
+      <p><strong>Dispositivos:</strong></p>
+      <ul style="margin-left: 20px; color: #f8f8f8;">
+        <li><strong>Teclado:</strong> Simula entrada de dados com interrupções. Digite texto e envie.</li>
+        <li><strong>Monitor:</strong> Simula saída de vídeo com memory-mapped I/O. Exiba texto na tela.</li>
+        <li><strong>Impressora:</strong> Simula dispositivo de saída com spooling. Imprima documentos.</li>
+        <li><strong>Controlador de Disco:</strong> Simula acesso a disco com DMA. Leia e escreva setores.</li>
+        <li><strong>Mouse:</strong> Simula dispositivo de entrada. Simule cliques e scroll.</li>
+        <li><strong>Scanner:</strong> Simula digitalização de documentos. Escolha resolução e digitalize.</li>
+        <li><strong>Webcam:</strong> Simula captura de vídeo. Inicie transmissão e capture fotos.</li>
+        <li><strong>Alto-falante:</strong> Simula saída de áudio. Ajuste volume e reproduza som.</li>
+      </ul>
+      <div class="modal-buttons">
+        <button onclick="closeModal()">Entendi</button>
+      </div>
+    </div>
+  </div>
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="js/ai-assistant.js"></script>
+  <script src="js/ai-chat-ui.js"></script>
+  <script src="js/io-simulator-advanced.js"></script>
+  <script src="js/io-simulator.js"></script>
+  <script>
+    
+    let aiAssistant = null;
+    let aiChatUI = null;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      
+      aiAssistant = new AIAssistant();
+      aiAssistant.loadApiKey();
+      aiAssistant.updateContext('io');
+
+      
+      aiChatUI = new AIChatUI(aiAssistant, 'io');
+      
+      
+      window.aiAssistant = aiAssistant;
+      window.aiChatUI = aiChatUI;
+
+      
+      setTimeout(() => {
+        const aiBtn = document.getElementById('aiAssistantBtn');
+        if (aiBtn) {
+          console.log('Botão encontrado, anexando listener...');
+          aiBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Botão clicado!', aiAssistant.apiKey);
+            if (!aiAssistant.apiKey) {
+              const modal = document.getElementById('aiConfigModal');
+              if (modal) {
+                modal.style.display = 'block';
+              } else {
+                alert('API Key não configurada. Por favor, configure nas configurações.');
+              }
+            } else {
+              aiChatUI.toggle();
+            }
+          });
+          console.log('Listener anexado com sucesso!');
+        } else {
+          console.error('Botão aiAssistantBtn não encontrado!');
+        }
+      }, 100);
+
+      
+      window.closeAIConfig = function() {
+        document.getElementById('aiConfigModal').style.display = 'none';
+      };
+
+      window.saveAPIKey = function() {
+        const apiKey = document.getElementById('apiKeyInput').value.trim();
+        if (apiKey) {
+          aiAssistant.setApiKey(apiKey);
+          document.getElementById('apiKeyInput').value = '';
+          closeAIConfig();
+          aiChatUI.open();
+        } else {
+          alert('Por favor, insira uma API Key válida.');
+        }
+      };
+
+      
+      if (typeof window.visualizer !== 'undefined') {
+        const originalSelectDevice = window.visualizer.selectDevice;
+        window.visualizer.selectDevice = function(deviceType) {
+          const result = originalSelectDevice.call(this, deviceType);
+          if (aiChatUI) {
+            aiChatUI.updateContext(null, deviceType);
+            aiAssistant.addUserAction(`Selecionou dispositivo: ${deviceType}`);
+          }
+          return result;
+        };
+      }
+    });
+  </script>
+</body>
+</html>

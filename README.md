@@ -34,7 +34,7 @@ O simulador principal permite aos estudantes escrever e executar código Assembl
 - Operações de entrada/saída: IN, OUT
 
 **Componentes da CPU Simulada:**
-- 8 registradores (R1-R8)
+- 8 registradores (R1-R4)
 - Memória principal (M0-M7)
 - Contador de programa (PC)
 - Flags de comparação (equal, greater, less, zero)

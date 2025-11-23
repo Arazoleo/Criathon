@@ -35,7 +35,7 @@ O simulador principal permite aos estudantes escrever e executar código Assembl
 
 **Componentes da CPU Simulada:**
 - 8 registradores (R1-R8)
-- Memória principal (M0-M255)
+- Memória principal (M0-M7)
 - Contador de programa (PC)
 - Flags de comparação (equal, greater, less, zero)
 - Contador de ciclos de clock
@@ -130,7 +130,7 @@ O Assembly Quest visa ensinar:
 - Hierarquia de memória e diferentes tipos de armazenamento
 - Operações de entrada e saída
 - Conceitos de cache e otimização
-- Fluxo de dados em sistemas computacionais
+ computacionais
 - Ciclos de clock e latência
 
 ## Licença

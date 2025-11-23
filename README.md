@@ -2,7 +2,7 @@
 
 Plataforma educacional web interativa para ensino de Arquitetura e Organização de Computadores através de simulações visuais e interativas.
 
-##Links (Demo e Vídeo)
+## Links (Demo e Vídeo)
 
 - Vídeo: https://drive.google.com/file/d/1XS3KZfgq3E8uE1DrQKgzLmmw2ThpIH4I/view?usp=sharing
 
@@ -10,6 +10,11 @@ Plataforma educacional web interativa para ensino de Arquitetura e Organização
 
 - Deploy (temporário): https://assembly-quest-ysal.vercel.app/
 
+## Desenvolvedores
+
+- Ana Beatriz Ribeiro Garcia
+- Bruno de Abreu Correia
+- Leonardo Arazo de Oliveira Araújo
 
 ## Visão Geral
 

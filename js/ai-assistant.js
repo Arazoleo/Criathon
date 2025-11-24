@@ -2,7 +2,10 @@
 
 class AIAssistant {
   constructor() {
-    this.apiKey = "AIzaSyBnMxOOaQvM3MB0SG9ir8JNYMaY_WL1ehE"; 
+    // Tenta carregar da configuração local (desenvolvimento) ou localStorage (produção)
+    this.apiKey = (typeof window.CONFIG !== 'undefined' && window.CONFIG.GEMINI_API_KEY) 
+      ? window.CONFIG.GEMINI_API_KEY 
+      : null;
     this.conversationHistory = [];
     this.context = {
       simulator: null, 

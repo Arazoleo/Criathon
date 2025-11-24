@@ -100,6 +100,24 @@ Simula oito dispositivos de entrada e saída (teclado, monitor, impressora, disc
 5. Observe a execução em tempo real na visualização 3D
 6. Complete os objetivos de cada fase para avançar
 
+## Configuração da API Key do Gemini
+
+O assistente de IA utiliza a API do Google Gemini. Como este é um projeto HTML/JavaScript puro:
+
+### Como Funciona:
+1. **Cada usuário** configura sua própria chave da API
+2. Ao usar o assistente pela primeira vez, um modal solicita a chave
+3. Acesse [Google AI Studio](https://makersuite.google.com/app/apikey) para gerar uma chave gratuita
+4. A chave fica salva no **localStorage** do navegador
+5. Pode ser reconfigurada a qualquer momento
+
+### Para Deploy no Vercel:
+- **Não precisa** configurar variáveis de ambiente
+- O deploy é direto - faça push para o repositório
+- Cada usuário usará sua própria chave
+
+**Nota:** A chave da API foi removida do código-fonte por segurança. Cada usuário agora precisa configurar sua própria chave gratuitamente no Google AI Studio.
+
 ## Estrutura do Projeto
 
 ```
@@ -119,6 +137,9 @@ Assembly-Quest/
 │   ├── ai-chat-ui.js      # Interface do chat de IA
 │   ├── scene3d.js         # Renderização 3D
 │   └── animations.js      # Animações e efeitos
+├── .gitignore             # Arquivos ignorados pelo Git
+├── CONFIGURACAO_VERCEL.md # Guia de deploy no Vercel
+├── INSTRUCOES_RAPIDAS.md  # Resumo rápido de configuração
 └── README.md              # Este arquivo
 ```
 

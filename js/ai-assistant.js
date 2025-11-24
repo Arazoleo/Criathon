@@ -2,10 +2,6 @@
 
 class AIAssistant {
   constructor() {
-    // Tenta carregar da configuração local (desenvolvimento) ou localStorage (produção)
-    this.apiKey = (typeof window.CONFIG !== 'undefined' && window.CONFIG.GEMINI_API_KEY) 
-      ? window.CONFIG.GEMINI_API_KEY 
-      : null;
     this.conversationHistory = [];
     this.context = {
       simulator: null, 
@@ -187,26 +183,6 @@ class AIAssistant {
   }
 
   
-  setApiKey(apiKey) {
-    this.apiKey = apiKey;
-    localStorage.setItem('gemini_api_key', apiKey);
-  }
-
-  
-  loadApiKey() {
-    const saved = localStorage.getItem('gemini_api_key');
-    if (saved) {
-      this.apiKey = saved;
-    }
-    return this.apiKey;
-  }
-
-  
-  hasApiKey() {
-    return !!this.apiKey;
-  }
-
-  
   updateContext(simulator, phase = null, device = null) {
     this.context.simulator = simulator;
     this.context.currentPhase = phase;
@@ -333,12 +309,7 @@ RESPOSTA:`;
 
   
   async sendMessage(userQuery) {
-    if (!this.apiKey) {
-      throw new Error('API Key do Gemini não configurada. Por favor, configure na aba de configurações.');
-    }
-
     const prompt = this.buildPrompt(userQuery);
-    
     
     this.conversationHistory.push({
       role: 'user',
@@ -347,28 +318,25 @@ RESPOSTA:`;
     });
 
     try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${this.apiKey}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: prompt
-              }]
-            }],
-            generationConfig: {
-              temperature: 0.7,
-              topK: 40,
-              topP: 0.95,
-              maxOutputTokens: 1024,
-            }
-          })
-        }
-      );
+      const response = await fetch('/api/gemini-proxy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 1024,
+          }
+        })
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -379,14 +347,12 @@ RESPOSTA:`;
       const aiResponse = data.candidates[0]?.content?.parts[0]?.text || 
                         'Desculpe, não consegui gerar uma resposta.';
 
-      
       this.conversationHistory.push({
         role: 'assistant',
         content: aiResponse,
         timestamp: Date.now()
       });
 
-      
       this.addUserAction(`Perguntou: ${userQuery.substring(0, 50)}...`);
 
       return aiResponse;

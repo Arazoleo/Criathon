@@ -3,9 +3,6 @@
 .env.local
 .env.production
 
-# Config local (não commitar a chave da API)
-js/config.js
-
 # Dependencies
 node_modules/
 

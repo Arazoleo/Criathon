@@ -222,8 +222,6 @@
   <script src="js/gameData.js"></script>
   <script src="js/animations.js"></script>
   <script src="js/scene3d.js"></script>
-  <!-- Config local (ignorado em produção se não existir) -->
-  <script src="js/config.js" onerror="console.log('Config.js não encontrado - usando localStorage')"></script>
   <script src="js/ai-assistant.js"></script>
   <script src="js/ai-chat-ui.js"></script>
   <script src="js/game.js"></script>
@@ -235,7 +233,6 @@
     window.addEventListener('DOMContentLoaded', () => {
       
       aiAssistant = new AIAssistant();
-      aiAssistant.loadApiKey();
       aiAssistant.updateContext('assembly');
 
       
@@ -249,44 +246,13 @@
       setTimeout(() => {
         const aiBtn = document.getElementById('aiAssistantBtn');
         if (aiBtn) {
-          console.log('Botão encontrado, anexando listener...');
           aiBtn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log('Botão clicado!', aiAssistant.apiKey);
-            if (!aiAssistant.apiKey) {
-              const modal = document.getElementById('aiConfigModal');
-              if (modal) {
-                modal.style.display = 'block';
-              } else {
-                alert('API Key não configurada. Por favor, configure nas configurações.');
-              }
-            } else {
-              aiChatUI.toggle();
-            }
+            aiChatUI.toggle();
           });
-          console.log('Listener anexado com sucesso!');
-        } else {
-          console.error('Botão aiAssistantBtn não encontrado!');
         }
       }, 100);
-
-      
-      window.closeAIConfig = function() {
-        document.getElementById('aiConfigModal').style.display = 'none';
-      };
-
-      window.saveAPIKey = function() {
-        const apiKey = document.getElementById('apiKeyInput').value.trim();
-        if (apiKey) {
-          aiAssistant.setApiKey(apiKey);
-          document.getElementById('apiKeyInput').value = '';
-          closeAIConfig();
-          aiChatUI.open();
-        } else {
-          alert('Por favor, insira uma API Key válida.');
-        }
-      };
 
       
       setTimeout(() => {

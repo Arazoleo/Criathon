@@ -83,13 +83,13 @@ Simula oito dispositivos de entrada e saída (teclado, monitor, impressora, disc
 - Web Audio API para geração de som
 - Canvas API para renderização de texto
 - Google Gemini API para assistente de IA
-- LocalStorage para persistência de dados
+- Vercel Serverless Functions para API proxy
 
 ## Requisitos do Sistema
 
 - Navegador moderno com suporte a WebGL (Chrome, Firefox, Safari, Edge)
 - JavaScript ES6+ habilitado
-- Conexão com internet para uso do assistente de IA (opcional)
+- Conexão com internet para uso do assistente de IA
 
 ## Como Usar
 
@@ -102,21 +102,20 @@ Simula oito dispositivos de entrada e saída (teclado, monitor, impressora, disc
 
 ## Configuração da API Key do Gemini
 
-O assistente de IA utiliza a API do Google Gemini. Como este é um projeto HTML/JavaScript puro:
-
-### Como Funciona:
-1. **Cada usuário** configura sua própria chave da API
-2. Ao usar o assistente pela primeira vez, um modal solicita a chave
-3. Acesse [Google AI Studio](https://makersuite.google.com/app/apikey) para gerar uma chave gratuita
-4. A chave fica salva no **localStorage** do navegador
-5. Pode ser reconfigurada a qualquer momento
+O assistente de IA utiliza a API do Google Gemini através de um proxy serverless:
 
 ### Para Deploy no Vercel:
-- **Não precisa** configurar variáveis de ambiente
-- O deploy é direto - faça push para o repositório
-- Cada usuário usará sua própria chave
 
-**Nota:** A chave da API foi removida do código-fonte por segurança. Cada usuário agora precisa configurar sua própria chave gratuitamente no Google AI Studio.
+1. Acesse o dashboard do seu projeto no Vercel
+2. Vá em **Settings** → **Environment Variables**
+3. Adicione a seguinte variável:
+   - **Name:** `VITE_GEMINI_API_KEY`
+   - **Value:** Sua chave da API do Google Gemini
+   - **Environments:** Marque Production, Preview e Development
+4. Obtenha sua chave em [Google AI Studio](https://makersuite.google.com/app/apikey)
+5. Faça redeploy da aplicação
+
+A chave da API fica segura no backend através de uma Vercel Function (`api/gemini-proxy.js`) que age como proxy entre o frontend e a API do Gemini.
 
 ## Estrutura do Projeto
 
@@ -126,6 +125,8 @@ Assembly-Quest/
 ├── game.html              # Simulador de CPU e Assembly
 ├── memory-simulator.html  # Simulador de Memória e Disco
 ├── io-simulator.html      # Simulador de I/O
+├── api/
+│   └── gemini-proxy.js    # Proxy serverless para API do Gemini
 ├── css/
 │   └── game.css           # Estilos compartilhados
 ├── js/
@@ -138,8 +139,6 @@ Assembly-Quest/
 │   ├── scene3d.js         # Renderização 3D
 │   └── animations.js      # Animações e efeitos
 ├── .gitignore             # Arquivos ignorados pelo Git
-├── CONFIGURACAO_VERCEL.md # Guia de deploy no Vercel
-├── INSTRUCOES_RAPIDAS.md  # Resumo rápido de configuração
 └── README.md              # Este arquivo
 ```
 
@@ -150,8 +149,7 @@ O Assembly Quest visa ensinar:
 - Linguagem Assembly e conjunto de instruções
 - Hierarquia de memória e diferentes tipos de armazenamento
 - Operações de entrada e saída
-- Conceitos de cache e otimização
- computacionais
+- Conceitos de cache e otimização computacionais
 - Ciclos de clock e latência
 
 ## Licença

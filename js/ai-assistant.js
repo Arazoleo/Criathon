@@ -227,6 +227,12 @@ class AIAssistant {
 
   
   retrieveRelevantInfo(query) {
+    // Validação: garantir que query não é undefined ou null
+    if (!query || typeof query !== 'string') {
+      console.warn('Query inválida no retrieveRelevantInfo:', query);
+      return [];
+    }
+    
     const queryLower = query.toLowerCase();
     const relevantInfo = [];
     
@@ -236,9 +242,11 @@ class AIAssistant {
         
         if (kb.concepts) {
           kb.concepts.forEach(concept => {
-            if (concept.toLowerCase().includes(queryLower) || 
-                queryLower.split(' ').some(word => concept.toLowerCase().includes(word))) {
-              relevantInfo.push(concept);
+            if (concept && typeof concept === 'string') {
+              if (concept.toLowerCase().includes(queryLower) || 
+                  queryLower.split(' ').some(word => concept.toLowerCase().includes(word))) {
+                relevantInfo.push(concept);
+              }
             }
           });
         }
@@ -246,11 +254,13 @@ class AIAssistant {
         
         if (kb.devices) {
           kb.devices.forEach(device => {
-            if (device.name.toLowerCase().includes(queryLower) ||
-                device.description.toLowerCase().includes(queryLower)) {
-              relevantInfo.push(`${device.name}: ${device.description}`);
-              if (device.operations) {
-                relevantInfo.push(`Operações: ${device.operations.join(', ')}`);
+            if (device && device.name && device.description) {
+              if (device.name.toLowerCase().includes(queryLower) ||
+                  device.description.toLowerCase().includes(queryLower)) {
+                relevantInfo.push(`${device.name}: ${device.description}`);
+                if (device.operations) {
+                  relevantInfo.push(`Operações: ${device.operations.join(', ')}`);
+                }
               }
             }
           });
@@ -261,20 +271,24 @@ class AIAssistant {
           if (this.context.currentPhase) {
             const phase = kb.phases.find(p => p.id === this.context.currentPhase);
             if (phase) {
-              relevantInfo.push(`Fase atual: ${phase.title}`);
-              relevantInfo.push(`Objetivo: ${phase.objective}`);
-              relevantInfo.push(`Descrição: ${phase.description}`);
+              if (phase.title) relevantInfo.push(`Fase atual: ${phase.title}`);
+              if (phase.objective) relevantInfo.push(`Objetivo: ${phase.objective}`);
+              if (phase.description) relevantInfo.push(`Descrição: ${phase.description}`);
               if (phase.commands) {
                 relevantInfo.push(`Comandos sugeridos: ${phase.commands.join(', ')}`);
               }
-          }
+            }
           }
           
           kb.phases.forEach(phase => {
-            if (phase.title.toLowerCase().includes(queryLower) ||
-                phase.objective.toLowerCase().includes(queryLower) ||
-                phase.description.toLowerCase().includes(queryLower)) {
-              relevantInfo.push(`Fase relacionada: ${phase.title} - ${phase.objective}`);
+            if (phase) {
+              const titleMatch = phase.title && phase.title.toLowerCase().includes(queryLower);
+              const objectiveMatch = phase.objective && phase.objective.toLowerCase().includes(queryLower);
+              const descriptionMatch = phase.description && phase.description.toLowerCase().includes(queryLower);
+              
+              if (titleMatch || objectiveMatch || descriptionMatch) {
+                relevantInfo.push(`Fase relacionada: ${phase.title || 'Sem título'} - ${phase.objective || 'Sem objetivo'}`);
+              }
             }
           });
         }

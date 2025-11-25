@@ -8,7 +8,7 @@ Plataforma educacional web interativa para ensino de Arquitetura e Organização
 
 - Demo: https://drive.google.com/file/d/15dFJ0uKgAF8L9moSnNAJB8gsfjISxa-t/view?usp=drive_link
 
-- Deploy (temporário): https://assembly-quest-ysal.vercel.app/
+- Deploy (temporário): https://criathon-agxa1ahxp-arazoleos-projects.vercel.app/
 
 ## Desenvolvedores
 
